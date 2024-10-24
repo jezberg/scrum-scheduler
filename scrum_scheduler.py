@@ -29,7 +29,7 @@ def print_data_properties(data: ScrumData) -> None:
     print("Num meeting slots: ", data.num_slots)
     print("People: ", list(data.people.keys()))
     print("Groups and their members")
-    for group_name, members in groups.items():
+    for group_name, members in data.groups.items():
          print("\t", group_name, ": ", members)
     print()
 
