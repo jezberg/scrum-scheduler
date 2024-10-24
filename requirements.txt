@@ -1,0 +1,2 @@
+python-sat[aiger,approxmc,cryptosat,pblib]
+colorama
