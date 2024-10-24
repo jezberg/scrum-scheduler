@@ -135,9 +135,22 @@ def get_meetings_in_slot(person : str, slot: int, model_set : set, data: ScrumDa
     return meeting_participation[0]
 
 def get_meetings_missed(person : str,  model_set : set, data: ScrumData ) -> List[str]:
-     groups = data.people[person]
-     missed = [g for g in groups if all( data.person_in_group_meeting_slot[(person, g, slot)] not in model_set for slot in range(1, data.num_slots +1) )]
-     return missed
+    groups = data.people[person]
+    missed = [g for g in groups if all( data.person_in_group_meeting_slot[(person, g, slot)] not in model_set for slot in range(1, data.num_slots +1) )]
+    return missed
+
+def print_persons_schedule(person : str, model_set : set, data: ScrumData ) -> None:
+    print("Person ", person)
+    groups = data.people[person]
+    for slot in range(1, data.num_slots +1):
+        meetings_person = [g for g in groups if get_group_meeting_slot(g, model_set, data ) == slot]
+        if len(meetings_person) == 0:
+            print("\tslot: ", slot, "  no meetings")
+        elif len(meetings_person) > 1:
+            print("\tslot: ", slot, " ", " | ".join(meetings_person), " ->CONFLICTS")
+        else :
+            print("\tslot: ", slot, " ", meetings_person[0])
+    return
 
 
 def interpret_model(model : List[int], data : ScrumData, missed_meetings : int) -> None:
@@ -150,16 +163,7 @@ def interpret_model(model : List[int], data : ScrumData, missed_meetings : int) 
     print()
     print("People Schedules")
     for person in data.people:
-        schedule = "Person " + person + ":"
-        for slot in range(1, data.num_slots +1):
-            schedule = schedule + "\n\tslot " + str(slot) + "-> "
-            groups_participated_in = get_meetings_in_slot(person, slot, model_set, data)
-            if groups_participated_in is None:
-                 schedule = schedule + "no meetings"
-            else:
-                 schedule = schedule + groups_participated_in
-        print (schedule)
-        print("Person ", person, " misses meeting with groups ", get_meetings_missed(person, model_set, data))
+        print_persons_schedule(person, model_set, data)
         print()
     return
 
