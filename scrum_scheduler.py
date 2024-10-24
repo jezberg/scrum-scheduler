@@ -3,6 +3,7 @@
 from collections import defaultdict
 from dataclasses import dataclass
 from typing import List
+from colorama import Fore, Style
 from pysat.formula import WCNF
 from pysat.examples.rc2 import RC2
 from pysat.card import *
@@ -147,7 +148,7 @@ def print_persons_schedule(person : str, model_set : set, data: ScrumData ) -> N
         if len(meetings_person) == 0:
             print("\tslot: ", slot, "  no meetings")
         elif len(meetings_person) > 1:
-            print("\tslot: ", slot, " ", " | ".join(meetings_person), " ->CONFLICTS")
+            print(Fore.RED + "\tslot: ", slot, " ", " | ".join(meetings_person), " ->CONFLICTS" + Style.RESET_ALL)
         else :
             print("\tslot: ", slot, " ", meetings_person[0])
     return
