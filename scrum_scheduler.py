@@ -7,6 +7,12 @@ from pysat.formula import WCNF
 from pysat.examples.rc2 import RC2
 from pysat.card import *
 
+debug_print = False
+
+def print_debug(*printables) -> None:
+     if not debug_print:
+          return
+     print(" ".join([str(i) for i in printables]))
 
 
 @dataclass
@@ -61,41 +67,45 @@ def create_scrum_data(_num_slots : int, _groups : defaultdict) -> ScrumData:
 def create_wcnf(data : ScrumData) -> WCNF:
     cnf = WCNF()
     top_var = data.highest_var
-    ### Every group should  have their meeting in exactly one slot 
-   # print("Exactly one meeting per group")
+    
+    print_debug("Exactly one meeting slot per group")
     for group_name in data.groups:
         slot_vars = [data.group_meeting_slot_vars[(group_name, x)] for x in range(1, data.num_slots +1) ]
-     #   print("group_name ", group_name, " range ", range(1,data.num_slots+1), " slot_vars ", slot_vars)
+        print_debug("group_name ", group_name, " range ", range(1,data.num_slots+1), " slot_vars ", slot_vars)
         assert all(var is not None for var in slot_vars)
-        ## group_name needs to have at least one meeting
+        # at least one meeting
         cnf.append(slot_vars)
-        ## group_name can have at most one meeting
+        # at most one meeting
+        print_debug("Top_var ", top_var)
         enc = CardEnc.atmost(lits=slot_vars, bound=1, top_id = top_var, encoding=EncType.seqcounter)
         cnf.extend(enc.clauses)
-        top_var = cnf.nv
+        top_var = max(top_var, cnf.nv)
             
-    ### Every person can attend at most one meeting in a slot 
+    print_debug("every person has atmost one meeting in a slot" )
     for person, groups in data.people.items():
         for slot in range(1, data.num_slots +1):
             slot_vars = [data.person_in_group_meeting_slot[(person, g, slot)] for g in groups ]
             assert all(var is not None for var in slot_vars)
             assert len(slot_vars) > 0
+            print_debug("Person ", person, " slot ", slot, " vars ", slot_vars)       
+            print_debug("Top_var ", top_var)
             enc = CardEnc.atmost(lits=slot_vars, bound=1, top_id = top_var, encoding=EncType.seqcounter)
             cnf.extend(enc.clauses)
-            top_var = cnf.nv
+            top_var = max(top_var, cnf.nv)
     
     ### A person cannot attend a groups meeting in a slot if that meeting is not being held
+    print_debug("a person can not attend a meeting that does not exist" )
     for person, groups in data.people.items():
         for group in groups: 
             for slot in range(1, data.num_slots +1):
-                ### group meeting false -> person attending false
+                print_debug("Person ", person, " slot ", slot, " group ", group , " vars ",  data.group_meeting_slot_vars[(group, slot)], " or ",  -data.person_in_group_meeting_slot[(person, group, slot)]  )
                 cnf.append([data.group_meeting_slot_vars[(group, slot)], -data.person_in_group_meeting_slot[(person, group, slot)]   ])
 
-    ### Soft constraints stating that every person should try to attend the meeting of a group theyre a member of
+    print_debug("soft constraints: every person should make the meetings of groups they are members of")
     for person, groups in data.people.items():
         for g in groups: 
-        ##indicator variable for person attending a meeting
             meet_vars = [data.person_in_group_meeting_slot[(person, g, s)] for s in range(1, data.num_slots +1)] 
+            print_debug("Person ", person, " group ", g, " vars ", meet_vars)
             cnf.append(meet_vars, weight=1)
     return cnf
 
@@ -129,16 +139,15 @@ def get_meetings_missed(person : str,  model_set : set, data: ScrumData ) -> Lis
      return missed
 
 
-
 def interpret_model(model : List[int], data : ScrumData, missed_meetings : int) -> None:
     model_set = set(model)
     print("Found schedule with ", missed_meetings, " missed meetings"  )
-    print("Group:")
+    print("Group Schedules")
     for group_name in data.groups:        
         print("Group: ", group_name, " meeting slot: ", get_group_meeting_slot(group_name, model_set, data))
     
     print()
-    print("Peoples schedules")
+    print("People schedules")
     for person in data.people:
         schedule = "Person " + person + ": "
         for slot in range(1, data.num_slots +1):
@@ -147,7 +156,7 @@ def interpret_model(model : List[int], data : ScrumData, missed_meetings : int) 
             if groups_participated_in is None:
                  schedule = schedule + "no meetings, "
             else:
-                 schedule = schedule + groups_participated_in + " "
+                 schedule = schedule + groups_participated_in + ", "
         print (schedule)
         print("Person ", person, " misses meetings with groups ", get_meetings_missed(person, model_set, data))
     return
@@ -174,5 +183,5 @@ if (__name__ == "__main__"):
     }
     scrum_data = create_scrum_data(num_slots, groups)
     print_non_sat_info(scrum_data)
-    print(scrum_data)
+    print_debug(scrum_data)
     schedule_scrum_meetings(scrum_data)
