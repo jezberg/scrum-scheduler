@@ -58,32 +58,7 @@ def create_scrum_data(_num_slots : int, _groups : defaultdict) -> ScrumData:
                     person_in_group_meeting_slot=_person_in_group_meeting_slot,
                     highest_var=_highest_var)
 
-
-def interpret_model(model : List[int], data : ScrumData, missed_meetings : int) -> None:
-    model_set = set(model)
-    print("Found schedule with ", missed_meetings, " missed meetings"  )
-    print("Group schedules")
-    for group_name in data.groups:
-        meeting_times = [slot for slot in range(1, data.num_slots +1) if data.group_meeting_slot_vars[(group_name, slot)] in model_set]
-        if (len(meeting_times) != 1):
-            print("Group: ", group_name, " meeting slot: ", meeting_times)
-        assert len(meeting_times) == 1
-        print("Group: ", group_name, " meeting slot: ", meeting_times[0])
-    
-    print("Peoples schedules")
-    for person, groups in data.people.items():
-        schedule = defaultdict(None)
-        for slot in range(1, data.num_slots +1):
-            meeting_participation = [group for group in groups if data.person_in_group_meeting_slot[(person, group, slot)] in model_set]
-            if (len(meeting_participation) > 1):
-                print("Group: ", group_name, " meeting slot: ", meeting_times)
-            assert len(meeting_participation) <= 1
-            if (len(meeting_participation) == 1):
-                schedule[slot] = meeting_participation[0]
-        print("person: ", person, " schedule ", schedule)
-    return
-
-def schedule_scrum_meetings(data : ScrumData) -> None:
+def create_wcnf(data : ScrumData) -> WCNF:
     cnf = WCNF()
     top_var = data.highest_var
     ### Every group should  have their meeting in exactly one slot 
@@ -122,7 +97,65 @@ def schedule_scrum_meetings(data : ScrumData) -> None:
         ##indicator variable for person attending a meeting
             meet_vars = [data.person_in_group_meeting_slot[(person, g, s)] for s in range(1, data.num_slots +1)] 
             cnf.append(meet_vars, weight=1)
+    return cnf
 
+def get_group_meeting_slot(group_name : str, model_set : set, data: ScrumData ) -> int:
+    meeting_times = [slot for slot in range(1, data.num_slots +1) if data.group_meeting_slot_vars[(group_name, slot)] in model_set]
+    if (len(meeting_times) != 1):
+            print("Group: ", group_name, " meeting slot: ", meeting_times)
+    assert len(meeting_times) == 1
+    return meeting_times[0]
+
+## Debug method
+def get_non_group_meeting_slots(group_name : str, model_set : set, data: ScrumData ) -> List[int]:
+    meeting_times = [slot for slot in range(1, data.num_slots +1) if -data.group_meeting_slot_vars[(group_name, slot)] in model_set]
+    if (len(meeting_times) != 1):
+            print("Group: ", group_name, " meeting slot: ", meeting_times)
+    return meeting_times
+
+def get_meetings_in_slot(person : str, slot: int, model_set : set, data: ScrumData ):
+    groups = data.people[person]
+    meeting_participation = [group for group in groups if data.person_in_group_meeting_slot[(person, group, slot)] in model_set]
+    if (len(meeting_participation) > 1):
+                print("Person: ", person, " meeting slot: ", slot, " participation ", meeting_participation)
+    assert len(meeting_participation) <= 1
+    if len(meeting_participation) == 0:
+         return None 
+    return meeting_participation[0]
+
+def get_meetings_missed(person : str,  model_set : set, data: ScrumData ) -> List[str]:
+     groups = data.people[person]
+     missed = [g for g in groups if all( data.person_in_group_meeting_slot[(person, g, slot)] not in model_set for slot in range(1, data.num_slots +1) )]
+     return missed
+
+
+
+def interpret_model(model : List[int], data : ScrumData, missed_meetings : int) -> None:
+    model_set = set(model)
+    print("Found schedule with ", missed_meetings, " missed meetings"  )
+    print("Group:")
+    for group_name in data.groups:        
+        print("Group: ", group_name, " meeting slot: ", get_group_meeting_slot(group_name, model_set, data))
+        ## Debugging
+        print("Group: ", group_name, " does NOT meet in slots: ",  get_non_group_meeting_slots(group_name, model_set, data) )
+    
+    print()
+    print("Peoples schedules")
+    for person in data.people:
+        schedule = "Person " + person + ": "
+        for slot in range(1, data.num_slots +1):
+            schedule = schedule + "slot " + str(slot) + "-> "
+            groups_participated_in = get_meetings_in_slot(person, slot, model_set, data)
+            if groups_participated_in is None:
+                 schedule = schedule + "no meetings, "
+            else:
+                 schedule = schedule + groups_participated_in + " "
+        print (schedule)
+        print("Person ", person, " misses meetings with groups ", get_meetings_missed(person, model_set, data))
+    return
+
+def schedule_scrum_meetings(data : ScrumData) -> None:
+    cnf = create_wcnf(data)
     with RC2(cnf) as rc2:
         m = rc2.compute() 
        # print('model {0} has cost {1}'.format(m, rc2.cost))
@@ -143,5 +176,5 @@ if (__name__ == "__main__"):
     }
     scrum_data = create_scrum_data(num_slots, groups)
     print_non_sat_info(scrum_data)
-    #print(scrum_data)
+    print(scrum_data)
     schedule_scrum_meetings(scrum_data)
