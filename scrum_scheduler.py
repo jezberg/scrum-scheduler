@@ -136,8 +136,6 @@ def interpret_model(model : List[int], data : ScrumData, missed_meetings : int) 
     print("Group:")
     for group_name in data.groups:        
         print("Group: ", group_name, " meeting slot: ", get_group_meeting_slot(group_name, model_set, data))
-        ## Debugging
-        print("Group: ", group_name, " does NOT meet in slots: ",  get_non_group_meeting_slots(group_name, model_set, data) )
     
     print()
     print("Peoples schedules")
