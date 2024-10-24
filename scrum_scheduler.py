@@ -150,16 +150,16 @@ def interpret_model(model : List[int], data : ScrumData, missed_meetings : int) 
     print()
     print("People schedules")
     for person in data.people:
-        schedule = "Person " + person + ": "
+        schedule = "Person " + person + ":"
         for slot in range(1, data.num_slots +1):
-            schedule = schedule + "slot " + str(slot) + "-> "
+            schedule = schedule + "\n\tslot " + str(slot) + "-> "
             groups_participated_in = get_meetings_in_slot(person, slot, model_set, data)
             if groups_participated_in is None:
-                 schedule = schedule + "no meetings, "
+                 schedule = schedule + "no meetings"
             else:
-                 schedule = schedule + groups_participated_in + ", "
+                 schedule = schedule + groups_participated_in
         print (schedule)
-        print("Person ", person, " misses meetings with groups ", get_meetings_missed(person, model_set, data))
+        print("Person ", person, " misses meeting with groups ", get_meetings_missed(person, model_set, data))
     return
 
 def schedule_scrum_meetings(data : ScrumData) -> None:
