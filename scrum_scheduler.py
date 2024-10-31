@@ -22,7 +22,7 @@ class ScrumData():
     people: defaultdict[dict] ## person -> groups they belong to
     groups : defaultdict[dict] # group_name -> list of members 
     group_meeting_slot_vars : defaultdict[dict] ## (group, slot) -> int indicator variables for group meeting in slot
-    person_in_group_meeting_slot : defaultdict[dict] # (person, group, slot) -> int, indicator variables for person participating in group meeting in slot 
+    person_in_group_meeting_slot : defaultdict[dict] # (person, group, slot) -> int indicator variables for person participating in group meeting in slot 
     highest_var : int
 
 def print_data_properties(data: ScrumData) -> None:
@@ -35,17 +35,15 @@ def print_data_properties(data: ScrumData) -> None:
     print()
 
 
-## Expects the grous as a dictionary mapping a group name to the members of it. Will break if group names are not unique, but does not check 
+## Expects the groups as a dictionary mapping a group name to the members of it. Will break if group names are not unique, but does not check 
 def create_scrum_data(_num_slots : int, _groups : defaultdict) -> ScrumData:
-    ## crete mapping of people to the groups they belong to
+    ## create mapping of people to the groups they belong to
     dict_people = defaultdict(set)
     for group_name in _groups: 
         for person in _groups[group_name]:
             dict_people[person].add(group_name)
-
-    ### then we create a mapping to the groups they belong to 
     _highest_var = 0
-    ## add names for the indicators of group meetings these variables are meant to indicate that a gorup should keep its meeting in slot
+    ## add names for the indicators of group meetings these variables are meant to indicate that a group should keep its meeting in slot
     _group_meeting_slot_vars = defaultdict(None)
 
     for group_name in _groups: 
@@ -53,7 +51,8 @@ def create_scrum_data(_num_slots : int, _groups : defaultdict) -> ScrumData:
             _highest_var = _highest_var + 1
             _group_meeting_slot_vars[(group_name, slot_num)] = _highest_var
 
-    ## add indicators for a person participating in the meeting of group in a specific slot. For a fixed person we only define these variables for the groups in which the person is am meber of
+    ## add indicators for a person participating in the meeting of group in a specific slot. 
+    ## For a fixed person we only define these variables for the groups in which the person is am meber of
     _person_in_group_meeting_slot = defaultdict(None)
     for group_name in _groups: 
         for person in _groups[group_name]:
